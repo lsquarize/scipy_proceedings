@@ -144,7 +144,17 @@ business outcomes we target, such as conversion or revenue, are not the same obj
 precision and recall, and for rare-event problems the two can move in different directions.
 A threshold change that improves aggregate business value may leave classification metrics
 flat or slightly worse, and practitioners with rare-event objectives should specify the
-outcome they actually care about rather than assuming the two coincide.
+outcome they actually care about rather than assuming the two coincide. The difference is
+one of estimand, not only of units. Precision and recall at a candidate cutoff are computed
+over the entire score distribution, so they are dominated by observations far from the
+margin, which are exactly the units a threshold move does not reassign; they summarize how
+well the score separates labels, not what acting at the margin causes. Restricting attention
+to a neighborhood of the cutoff is what licenses a causal reading, and it is what the
+locality noted above buys in exchange for the loss of external validity. The two also sit at
+different points in the lifecycle: precision and recall are natural during model
+development, when the score itself is still being selected, whereas the tuning we describe
+is a post-deployment adjustment to a fixed pipeline, estimated on outcomes that pipeline has
+already generated.
 
 Our validation covers simulated data together with recommendation and premium-feature
 monetization settings at Intuit. We do not claim validation in fraud detection, healthcare,
@@ -158,18 +168,31 @@ model pipeline; retraining, recalibration, or a shift in feature quality changes
 distribution and requires re-tuning. Reported lift should accordingly be read as the effect
 of the threshold given that pipeline, not as a property of the threshold alone.
 
-Finally, outcomes and guardrails are measured over a fixed post-decision window. Longer-horizon
-effects on retention, trust, and future engagement are not captured, and a threshold that
-improves short-run conversion could in principle degrade them; extending the framework to
-longer outcome horizons is future work. RDD is also not the only route to a tuned threshold,
-and we position it as complementary rather than dominant. Uplift and metalearner approaches
-estimate heterogeneous effects across the entire score range [@kunzel2019], which RDD does
-not, but they require randomized or credibly quasi-random assignment. Bayesian optimization
-[@shahriari2016] and reinforcement learning policies can search the threshold space directly,
-but need online interaction and many evaluations to converge. What distinguishes RDD is that
-it requires neither new experiments nor online exploration: it reuses the natural experiment
-the existing cutoff already creates, which is what makes it deployable against a system
-already in production. A controlled benchmark against these alternatives remains future work.
+Finally, outcomes and guardrails are measured over a fixed post-decision window.
+Longer-horizon effects on retention, trust, and future engagement are not captured, and a
+threshold that improves short-run conversion could in principle degrade them. Nothing in the
+design forbids a longer window: RDD identifies a discontinuity in whatever outcome is
+measured against the running variable, and a twelve-month retention outcome is as admissible
+as a seven-day conversion one. The obstacle is operational rather than inferential. A
+long-horizon outcome must accumulate under a fixed cutoff before it can be estimated, which
+bounds how quickly the iterative loop described above can turn and strains the requirement
+that the scoring pipeline stay unchanged across the measurement window. Substituting
+short-term leading indicators is the usual remedy, but a proxy justifies the substitution
+only if the treatment affects the long-run outcome exclusively through it [@prentice1989], a
+condition rarely met by any single indicator and one that constructions such as the surrogate
+index [@athey2019] are designed to relax. We take no position on which surrogates are
+defensible in the settings we study; treating that question properly is beyond the scope of
+this paper, and we flag it as the principal obstacle to long-horizon threshold tuning.
+
+RDD is also not the only route to a tuned threshold, and we position it as complementary
+rather than dominant. Uplift and metalearner approaches estimate heterogeneous effects across
+the entire score range [@kunzel2019], which RDD does not, but they require randomized or
+credibly quasi-random assignment. Bayesian optimization [@shahriari2016] and reinforcement
+learning policies can search the threshold space directly, but need online interaction and
+many evaluations to converge. What distinguishes RDD is that it requires neither new
+experiments nor online exploration: it reuses the natural experiment the existing cutoff
+already creates, which is what makes it deployable against a system already in production. A
+controlled benchmark against these alternatives remains future work.
 
 ## Contributions and Implications
 
